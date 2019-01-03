@@ -23,15 +23,12 @@ public:
     void setUrl(QUrl url);
     void setContent(QIODevice *contentFile);
 	void post(QByteArray script);
-	bool error();
-	QByteArray content();
+    bool error();
 
 protected:
 	QHttp http;
     QUrl _url;
     QIODevice *_contentFile;
-    QBuffer contentBuffer;
-	QByteArray _content;
 	bool _error;
 	int postid;
 

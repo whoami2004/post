@@ -17,8 +17,6 @@ Poster::Poster()
             this,SLOT(dataReadProgress(int,int)));
     connect(&http,SIGNAL(requestFinished(int,bool)),
             this,SLOT(requestFinished(int,bool)));
-    connect(&http,SIGNAL(done(bool)),
-            this,SIGNAL(done()));
 }
 
 void Poster::setUrl(QUrl url)
@@ -29,25 +27,21 @@ void Poster::setUrl(QUrl url)
 void Poster::setContent(QIODevice *contentFile)
 {_contentFile = contentFile;}
 void Poster::post(QByteArray script)
-{
-    contentBuffer.setBuffer(&_content);
-    postid = http.post(_url.path(),script,&contentBuffer);
-}
+{postid = http.post(_url.path(),script,_contentFile);}
 bool Poster::error()
 {return _error;}
-QByteArray Poster::content()
-{return _content;}
 
 void Poster::requestStarted(int id)
 {
     if (id != postid)
         return;
-    std::cout << "Connecting to the host ("
-        << _url.host() << ") ..." << std::endl;
+    std::cout << "\033[41m[ " << QTime::currentTime().toString() <<" ]\033[0m Connecting to the host ("
+              << _url.host() << ") ..." << std::endl;
     _error = false;
 }
 void Poster::dataSendProgress(int done, int total)
 {
+    std::cout << "\033[?25l\033[42m";
     if (total)
         std::cout << 100*done/total << "% ";
     std::cout << "[ Data sending ";
@@ -68,14 +62,15 @@ void Poster::dataSendProgress(int done, int total)
             std::cout << total/1024/1024 << "MB ";
     }
     static uint dt = QDateTime::currentDateTime().toTime_t();
-    std::cout << QDateTime::currentDateTime().toTime_t() - dt << "s ]     \r";
+    std::cout << QDateTime::currentDateTime().toTime_t() - dt << "s ]\033[0m\033[K\r\033[?25h";
 }
 void Poster::responseHeaderReceived()
 {
-    std::cout << std::endl << "Data sending completed." << std::endl;
+    std::cout << "\033[K\033[41m[ " << QTime::currentTime().toString() <<" ]\033[0m Data sending completed." << std::endl;
 }
 void Poster::dataReadProgress(int done, int total)
 {
+    std::cout << "\033[?25l\033[42m";
     if (total)
         std::cout << (qint64)100*done/total << "% ";
     std::cout << "[ Data reading ";
@@ -96,16 +91,16 @@ void Poster::dataReadProgress(int done, int total)
             std::cout << total/1024/1024 << "MB ";
     }
     static uint dt = QDateTime::currentDateTime().toTime_t();
-    std::cout << QDateTime::currentDateTime().toTime_t() - dt << "s ]     \r";
+    std::cout << QDateTime::currentDateTime().toTime_t() - dt << "s ]\033[0m\033[K\r\033[?25h";
 }
 void Poster::requestFinished(int id, bool error)
 {
     if (id != postid)
         return;
-    std::cout << std::endl;
+    std::cout << "\033[K\033[41m[ " << QTime::currentTime().toString() << " ]\033[0m ";
     if (error)
     {
-        std::cerr << std::endl << "Error: ";
+        std::cerr << "\033[31mError: ";
         switch (http.error())
         {
         case QHttp::HostNotFound: std::cerr << "Host not found.";break;
@@ -118,15 +113,11 @@ void Poster::requestFinished(int id, bool error)
         case QHttp::AuthenticationRequiredError: std::cerr << "Authentication required.";break;
         default: std::cerr << "Unknown error.";break;
         }
-        std::cerr << std::endl;
+        std::cerr << "\033[0m" << std::endl;
         _error = true;
+        emit done();
         return;
     }
-    std::cout << "Request completed." << std::endl
-              << std::endl
-              << "Outputing ..." << std::endl
-              << std::endl;
-    _error = false;
-    _contentFile->write(_content);
-    _contentFile->write("\n");
+    std::cout << "Data reading completed." << std::endl;
+    emit done();
 }

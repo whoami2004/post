@@ -1,5 +1,6 @@
 #include "poster.h"
 #include <iostream>
+#include <QTime>
 #include <QCoreApplication>
 #include <QEventLoop>
 
@@ -121,14 +122,20 @@ int main(int argc, char *argv[])
     }
     QFile oFile;
     if (outputFile.isEmpty())
-        oFile.open(stdout,QIODevice::WriteOnly);
+    {
+        oFile.setFileName(QObject::tr("post_%1").arg(QTime::currentTime().toString("HH_mm_ss")));
+        if (!oFile.open(QIODevice::WriteOnly))
+        {
+            std::cerr << "Error: Cannot open " << oFile.fileName() << "." << std::endl;
+            return -1;
+        }
+    }
     else
     {
         oFile.setFileName(outputFile);
         if (!oFile.open(QIODevice::WriteOnly))
         {
-            std::cerr << "Error: Cannot open " << outputFile << "." << std::endl
-                      << "Please make sure it exists." << std::endl;
+            std::cerr << "Error: Cannot open " << outputFile << "." << std::endl;
             return -1;
         }
     }
@@ -152,7 +159,6 @@ int main(int argc, char *argv[])
     loop.exec();
     if (poster.error())
         return 3;
-    std::cout << std::endl;
     oFile.close();
     return 0;
 }
